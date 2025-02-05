@@ -39,11 +39,17 @@ public struct Filter<T: FilterableAttributes>: FilterAction {
     filter: FilterItem
   ) -> FilterableList {
     let filteredItems = filterableItems.items.filter {
-      guard let attributes = $0.attributes as? T else { return false }
-      return predicate(attributes, filter)
+      if let attributes = $0.attributes as? T {
+        let result = predicate(attributes, filter)
+        return result
+      } else {
+        return false
+      }
     }
-    return FilterableList(items: filteredItems)
+
+    return filterableItems.copy(items: filteredItems)
   }
+
 }
 
 public struct Sort<T: FilterableAttributes, R: Comparable>: FilterAction {

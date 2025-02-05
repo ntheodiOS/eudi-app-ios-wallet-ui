@@ -78,12 +78,26 @@ public enum SelectedTab {
 struct DocumentAttributes: FilterableAttributes {
   let searchText: String
   let heading: String?
-  let test: String
+  let date: Date?
 
-  public init(searchText: String, heading: String?, test: String) {
+  public init(
+    searchText: String,
+    heading: String?,
+    date: Date?
+  ) {
     self.searchText = searchText
     self.heading = heading
-    self.test = test
+    self.date = date
+  }
+}
+
+public struct FilterableDocumentPayload: FilterableItemPayload {
+  public let documentUIModel: [DocumentUIModel]
+
+  public init(
+    documentUIModel: [DocumentUIModel]
+  ) {
+    self.documentUIModel = documentUIModel
   }
 }
 
@@ -151,27 +165,36 @@ final class DashboardViewModel<Router: RouterHost>: ViewModel<Router, DashboardS
                 FilterItem(
                   name: LocalizableString.shared.get(with: .nextSevenDays).capitalized,
                   selected: false,
-                  filterableAction: Filter<DocumentAttributes>(predicate: { _, _ in
-                    Date().isWithinNextDays(7)
-                  })),
+                  filterableAction: Filter<DocumentFilterableAttributes>(predicate: { attributes, _ in
+                    guard let date = attributes.expiryDate else { return false }
+                    return date.isWithinNextDays(7)
+                  })
+                ),
                 FilterItem(
                   name: LocalizableString.shared.get(with: .nextThirtyDays).capitalized,
                   selected: false,
-                  filterableAction: Filter<DocumentAttributes>(predicate: { _, _ in
-                    Date().isWithinNextDays(30)
-                  })),
+                  filterableAction: Filter<DocumentFilterableAttributes>(predicate: { attributes, _ in
+                    guard let date = attributes.expiryDate else { return false }
+                    return date.isWithinNextDays(30)
+                  })
+                ),
                 FilterItem(
                   name: LocalizableString.shared.get(with: .beyondThiryDays).capitalized,
                   selected: false,
-                  filterableAction: Filter<DocumentAttributes>(predicate: { _, _ in
-                    Date().isBeyondNextDays(30)
-                  })),
+                  filterableAction: Filter<DocumentFilterableAttributes>(predicate: { attributes, _ in
+                    guard let date = attributes.expiryDate else { return false }
+                    let result = date.isBeyondNextDays(30)
+                    return result
+                  })
+                ),
                 FilterItem(
                   name: LocalizableString.shared.get(with: .beforeToday).capitalized,
                   selected: false,
-                  filterableAction: Filter<DocumentAttributes>(predicate: { _, _ in
-                    Date().isBeforeToday()
-                  }))
+                  filterableAction: Filter<DocumentFilterableAttributes>(predicate: { attributes, _ in
+                    guard let date = attributes.expiryDate else { return false }
+                    return date.isBeforeToday()
+                  })
+                )
               ]
             )
           ],
@@ -202,7 +225,7 @@ final class DashboardViewModel<Router: RouterHost>: ViewModel<Router, DashboardS
         if viewState.isInitialFetch {
           await interactor.initializeFilters(filters: viewState.filters, filterableList: documents)
         } else {
-          //interactor.updateList()
+          await interactor.updateFilterList(filterableList: documents, filters: viewState.filters)
         }
 
         await interactor.applyFilters()
@@ -216,6 +239,7 @@ final class DashboardViewModel<Router: RouterHost>: ViewModel<Router, DashboardS
           )
         }
         onDocumentsRetrievedPostActions()
+        onFiltersChangeState()
       case .failure:
         setState {
           $0.copy(isLoading: false, documents: [])

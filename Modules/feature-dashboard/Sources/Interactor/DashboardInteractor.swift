@@ -61,6 +61,7 @@ public protocol DashboardInteractor: Sendable {
   func applyFilters() async
   func resetFilters() async
   func updateFilters(sectionID: String, filterID: String) async
+  func updateFilterList(filterableList: FilterableList, filters: Filters) async
 }
 
 final class DashboardInteractorImpl: DashboardInteractor {
@@ -109,7 +110,7 @@ final class DashboardInteractorImpl: DashboardInteractor {
           case .success(let filterResult):
 
             let documentsUI = filterResult.filteredList.items.compactMap { filterableItem in
-              filterableItem.data as? DocumentUIModel
+              filterableItem.payload as? DocumentUIModel
             }
 
             let filterSections = filterResult.updatedFilters.filterGroups.map { filteredGroup in
@@ -153,6 +154,10 @@ final class DashboardInteractorImpl: DashboardInteractor {
     await filterValidator.updateFilter(filterGroupId: sectionID, filterId: filterID)
   }
 
+  func updateFilterList(filterableList: FilterableList, filters: Filters) async {
+    await filterValidator.updateFilterList(filterableList: filterableList, filters: filters)
+  }
+
   public func fetchDashboard(failedDocuments: [String]) async -> DashboardPartialState {
     let documents: FilterableList? = fetchFilteredDocuments(failedDocuments: failedDocuments)
     let username = fetchUsername()
@@ -173,10 +178,10 @@ final class DashboardInteractorImpl: DashboardInteractor {
 
     let documentUIModels = documents.transformToDocumentUi(with: failedDocuments)
 
-    let filterableItems = documentUIModels.map { document in
+    let filterableItems = documents.map { document in
       FilterableItem(
-        data: document,
-        attributes: DocumentFilterableAttributes(document: document)
+        payload: FilterableDocumentPayload(documentUIModel: documentUIModels),
+        attributes: DocumentFilterableAttributes(searchText: document.displayName ?? "", issuedDate: document.createdAt, expiryDate: document.validUntil, issuer: document.issuerDisplay?.description, name: document.displayName)
       )
     }
 

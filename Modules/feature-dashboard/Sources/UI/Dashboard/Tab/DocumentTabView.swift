@@ -63,7 +63,6 @@ struct DocumentTabView: View {
         } else {
           contentUnavailableView()
         }
-
       }
     }
     .searchable(

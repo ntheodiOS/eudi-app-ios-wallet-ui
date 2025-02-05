@@ -22,25 +22,26 @@ public protocol FilterableItemPayload: Sendable { }
 public struct FilterableList: Sendable {
   public let items: [FilterableItem]
 
-  public init(items: [FilterableItem]) {
+  public init (
+    items: [FilterableItem]
+  ) {
     self.items = items
   }
 }
 
 public struct FilterableItem: Sendable {
-  public let data: FilterableItemPayload
+  public let payload: FilterableItemPayload
   public let attributes: FilterableAttributes
 
-  public init(
-    data: FilterableItemPayload,
+  public init (
+    payload: FilterableItemPayload,
     attributes: FilterableAttributes
   ) {
-    self.data = data
+    self.payload = payload
     self.attributes = attributes
   }
 }
 
 public protocol FilterableAttributes: Sendable {
   var searchText: String { get }
-  var heading: String? { get }
 }
